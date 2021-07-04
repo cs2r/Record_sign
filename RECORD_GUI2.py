@@ -13,7 +13,7 @@ import numpy
 from PIL import Image
 from PyV4L2Camera.camera import Camera
 import threading
-import subprocess
+import subprocess, random
 
 
 class RecordGUI:
@@ -213,7 +213,7 @@ class RecordGUI:
             if self.man.get() == 0 and len(self.lb.curselection()) > 0:
                 animation = pyglet.image.load_animation(self.sign_list[self.lb.curselection()[0]])
             else:
-                animation = pyglet.image.load_animation("/home/g108/PycharmProjects/Record_sign/REF_gif/No_data.gif")
+                animation = pyglet.image.load_animation("/home/g108/PycharmProjects/Record_sign/REF_gif/No_data" + str(random.randint(1, 4)) + ".gif")
             animSprite = pyglet.sprite.Sprite(animation)
             w = animSprite.width
             h = animSprite.height
@@ -293,7 +293,8 @@ class RecordGUI:
         self.ir_buffer = []
 
     def check(self):
-        print(os.system("find " + self.save_dir + " -type f -size -2M"))
+        result = os.popen("find " + self.save_dir + " -type f -size -2M")
+        print(result.read())
 
     def saveBasler(self):
         self.info1.set("Saving RGB To \n" + self.path_to_save + "/" + render_bidi_text(self.record_name.replace(' ', '_')) + '_' + str(self.rep) + '_RGB.avi')

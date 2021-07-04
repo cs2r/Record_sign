@@ -13,6 +13,7 @@ import numpy
 from PIL import Image
 from PyV4L2Camera.camera import Camera
 import threading
+import subprocess
 
 
 class RecordGUI:
@@ -24,13 +25,16 @@ class RecordGUI:
         print(cv2.__version__)
         self.master = master
         master.title("RECORD SIGN DATA")
-        self.master.geometry("700x420+1240+1000")
+        self.master.geometry("700x420+2240+100")
 
         self.rec_but = Button(master, text="Start REC", state=DISABLED, command=self.rec)
         self.rec_but.grid(row=5, column=0, sticky=W)
 
         self.egnor_but = Button(master, text="Egnore", state=DISABLED, command=self.egnore)
         self.egnor_but.grid(row=5, column=0, sticky=E)
+
+        self.check_but = Button(master, text="Check Files", command=self.check)
+        self.check_but.grid(row=5, column=2)
 
         self.open_but = Button(master, text="Open", command=self.open)
         self.open_but.grid(row=5, column=3, sticky=W)
@@ -56,7 +60,7 @@ class RecordGUI:
         self.max_rep_var = StringVar()
         self.max_rep = Entry(master, textvariable=self.max_rep_var, width=5)
         self.max_rep.grid(row=2, column=2, sticky=NW)
-        self.max_rep_var.set(1)
+        self.max_rep_var.set(4)
         self.rep = 1
 
         self.man = IntVar()
@@ -121,7 +125,7 @@ class RecordGUI:
         self.basler_saved = False
         self.ir_saved = False
         self.detect_face = False
-        self.save_dir = "/media/g108/Recording/"  #"/home/g108/Desktop/recording/test/" #
+        self.save_dir = "/home/g108/Desktop/Recording/"   #"/media/g108/Recording/"  #
 
         #self.open()
 
@@ -203,6 +207,7 @@ class RecordGUI:
             print("****************************")'''
     def amination_TH(self):
         window = pyglet.window.Window()
+        window.set_location(1300, 0)
         while True:
             time.sleep(1)
             if self.man.get() == 0 and len(self.lb.curselection()) > 0:
@@ -287,10 +292,14 @@ class RecordGUI:
         self.basler_buffer = []
         self.ir_buffer = []
 
+    def check(self):
+        print(os.system("find " + self.save_dir + " -type f -size -2M"))
+
     def saveBasler(self):
         self.info1.set("Saving RGB To \n" + self.path_to_save + "/" + render_bidi_text(self.record_name.replace(' ', '_')) + '_' + str(self.rep) + '_RGB.avi')
         self.label1.config(fg='red')
-        self.basler_out = cv2.VideoWriter(self.path_to_save + "/" + self.record_name.replace(' ', '_') + '_' + str(self.rep) + '_RGB.avi', self.fourcc, self.basler_frame_rate, self.basler_res)
+        file_name = self.path_to_save + "/" + self.record_name.replace(' ', '_') + '_' + str(self.rep) + '_RGB.avi'
+        self.basler_out = cv2.VideoWriter(file_name, self.fourcc, self.basler_frame_rate, self.basler_res)
         time.sleep(0.1)
 
         if self.rep < int(self.max_rep.get()):
@@ -309,14 +318,15 @@ class RecordGUI:
             self.basler_out.write(frame)
         self.basler_out.release()
         self.basler_buffer = []
-        self.info1.set("RGB SAVED In \n" + self.path_to_save + "/" + render_bidi_text(self.record_name.replace(' ', '_')) + '_' + str(self.rep) + '_RGB.avi')
+        self.info1.set("RGB SAVED In \n" + render_bidi_text(file_name))
         self.label1.config(fg='green')
         self.rec_but.config(state=NORMAL)
 
     def saveIR(self):
         self.info2.set("Saving IR to \n" + self.path_to_save + "/" + render_bidi_text(self.record_name.replace(' ', '_')) + '_' + str(self.rep) + '_IR.avi')
         self.label2.config(fg='red')
-        self.ir_out = cv2.VideoWriter(self.path_to_save + "/" + self.record_name.replace(' ', '_') + '_' + str(self.rep) + '_IR.avi', self.fourcc, self.ir_frame_rate, self.ir_res)
+        file_name = self.path_to_save + "/" + self.record_name.replace(' ', '_') + '_' + str(self.rep) + '_IR.avi'
+        self.ir_out = cv2.VideoWriter(file_name, self.fourcc, self.ir_frame_rate, self.ir_res)
         time.sleep(0.1)
         for frame in self.ir_buffer:
             pil_image = Image.frombytes('RGB', self.ir_res, frame, 'raw', 'RGB')
@@ -324,7 +334,7 @@ class RecordGUI:
             self.ir_out.write(frame)
         self.ir_out.release()
         self.ir_buffer = []
-        self.info2.set("IR SAVED In \n" + self.path_to_save + "/" + render_bidi_text(self.record_name.replace(' ', '_')) + '_' + str(self.rep) + '_IR.avi')
+        self.info2.set("IR SAVED In \n" + render_bidi_text(file_name))
         self.label2.config(fg='green')
 
     def basler_recording(self):

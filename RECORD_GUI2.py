@@ -55,18 +55,23 @@ class RecordGUI:
         self.signer.grid(row=1, column=2, sticky=NW)
         self.signer_var.set(1)
 
-        self.rep_label = Label(master, text="#Repetitions: ")
-        self.rep_label.grid(row=1, column=1, sticky=SE)
+        self.rep_label = Label(master, text="Max_rep")
+        self.rep_label.grid(row=1, column=3, sticky=NE)
         self.max_rep_var = StringVar()
         self.max_rep = Entry(master, textvariable=self.max_rep_var, width=5)
-        self.max_rep.grid(row=1, column=2, sticky=SW)
+        self.max_rep.grid(row=1, column=4, sticky=N)
         self.max_rep_var.set(4)
-        self.rep = 1
 
         self.clr = IntVar()
         self.color_but = Checkbutton(master, text="Color", variable=self.clr, command=self.color_callback)
-        self.color_but.grid(row=1, column=2, sticky=SE)
+        self.color_but.grid(row=1, column=5, sticky=NW)
 
+        self.current_rep = IntVar()
+        self.current_rep_label = Label(master, text="Current Rep:")
+        self.current_rep_label.grid(row=1, column=4, sticky=SE)
+        self.current_rep_entry = Entry(master, textvariable=self.current_rep, width=5)
+        self.current_rep_entry.grid(row=1, column=5, sticky=SW)
+        self.current_rep.set(1)
 
         self.man = IntVar()
         self.manual_but = Checkbutton(master, text = "Manual", variable = self.man, command=self.manual)
@@ -105,13 +110,13 @@ class RecordGUI:
 
         self.info1 = StringVar()
         self.label1 = Label(master, textvariable=self.info1)
-        self.label1.grid(row=3, column=1, columnspan=5, sticky=SW)
+        self.label1.grid(row=2, column=1, columnspan=5, sticky=SW)
         self.info2 = StringVar()
         self.label2 = Label(master, textvariable=self.info2)
-        self.label2.grid(row=4, column=1, columnspan=5, sticky=SW)
+        self.label2.grid(row=3, column=1, columnspan=5, sticky=SW)
         self.info3 = StringVar()
         self.label3 = Label(master, textvariable=self.info3)
-        self.label3.grid(row=2, column=1, columnspan=5, sticky=SW)
+        self.label3.grid(row=1, column=1, columnspan=5, sticky=SW)
 
         self.fourcc = cv2.VideoWriter_fourcc(*'MJPG') #H264
         self.record = False
@@ -256,14 +261,14 @@ class RecordGUI:
                 self.record = True
                 self.record_name = self.sign_name
                 if self.clr.get() == 1:
-                    self.info1.set("RGB is Recording Color Rep# " + str(self.rep))
+                    self.info1.set("RGB is Recording Color Rep# " + str(self.current_rep.get()))
                 else:
-                    self.info1.set("RGB is Recording Rep# " + str(self.rep))
+                    self.info1.set("RGB is Recording Rep# " + str(self.current_rep.get()))
                 self.label1.config(fg='blue')
                 if self.clr.get() == 1:
-                    self.info2.set("IR is Recording Color Rep# " + str(self.rep))
+                    self.info2.set("IR is Recording Color Rep# " + str(self.current_rep.get()))
                 else:
-                    self.info2.set("IR is Recording Rep# " + str(self.rep))
+                    self.info2.set("IR is Recording Rep# " + str(self.current_rep.get()))
                 self.label2.config(fg='blue')
             else:
                 self.rec_but.config(text="Start REC")
@@ -312,23 +317,47 @@ class RecordGUI:
         self.ir_buffer = []
 
     def check(self):
-        result = os.popen("find " + self.save_dir + " -type f -size -2M")
-        print(result.read())
+        print("Checking the list of files in: {" + self.path_to_save + "} Directory.")
+        saved_dir = self.save_dir + "Signer_" + self.signer_var.get()
+        list_of_recorded = []
+        for path, subdirs, files in os.walk(saved_dir):
+            for name in files:
+                list_of_recorded.append(name)
+        for path, subdirs, files in os.walk(self.REFname):       #[:54]
+            for name in files:
+                for rep in range(int(self.max_rep.get())):
+                    if self.clr.get() == 1:
+                        file_name = name.replace(' ', '_')[:-4] + "_Color_" + str(rep + 1)
+                    else:
+                        file_name = name.replace(' ', '_')[:-4] + "_" + str(rep+1)
+                    if file_name + '_RGB.avi' in list_of_recorded:
+                        if os.path.getsize(self.path_to_save + "/" + file_name + '_RGB.avi') < 1*1024*1024:
+                            print(file_name + '_RGB' + " تالف")
+                    else:
+                        print(file_name + '_RGB' + " غير مسجل")
+                    if file_name + '_IR.avi' in list_of_recorded:
+                        if os.path.getsize(self.path_to_save + "/" + file_name + '_IR.avi') < 1*1024*1024:
+                            print(file_name + '_IR' + " تالف")
+                    else:
+                        print(file_name + '_IR' + " غير مسجل")
+
+        #result = os.popen("find " + self.save_dir + " -type f -size -2M")
+        #print(result.read())
 
     def saveBasler(self):
-        self.info1.set("Saving RGB To \n" + self.path_to_save + "/" + render_bidi_text(self.record_name.replace(' ', '_')) + '_' + str(self.rep) + '_RGB.avi')
+        self.info1.set("Saving RGB To \n" + self.path_to_save + "/" + render_bidi_text(self.record_name.replace(' ', '_')) + '_' + str(self.current_rep.get()) + '_RGB.avi')
         self.label1.config(fg='red')
         if self.clr.get() == 1:
-            file_name = self.path_to_save + "/" + self.record_name.replace(' ', '_') + '_Color_' + str(self.rep) + '_RGB.avi'
+            file_name = self.path_to_save + "/" + self.record_name.replace(' ', '_') + '_Color_' + str(self.current_rep.get()) + '_RGB.avi'
         else:
-            file_name = self.path_to_save + "/" + self.record_name.replace(' ', '_') + '_' + str(self.rep) + '_RGB.avi'
+            file_name = self.path_to_save + "/" + self.record_name.replace(' ', '_') + '_' + str(self.current_rep.get()) + '_RGB.avi'
         self.basler_out = cv2.VideoWriter(file_name, self.fourcc, self.basler_frame_rate, self.basler_res)
         time.sleep(0.1)
 
-        if self.rep < int(self.max_rep.get()):
-            self.rep += 1
+        if self.current_rep.get() < int(self.max_rep.get()):
+            self.current_rep.set(self.current_rep.get() + 1)
         else:
-            self.rep = 1
+            self.current_rep.set(1)
             if self.lb.curselection()[0] < self.lb.size() - 1:
                 temp = self.lb.curselection()[0]
                 self.lb.selection_clear(0, END)
@@ -346,12 +375,12 @@ class RecordGUI:
         self.rec_but.config(state=NORMAL)
 
     def saveIR(self):
-        self.info2.set("Saving IR to \n" + self.path_to_save + "/" + render_bidi_text(self.record_name.replace(' ', '_')) + '_' + str(self.rep) + '_IR.avi')
+        self.info2.set("Saving IR to \n" + self.path_to_save + "/" + render_bidi_text(self.record_name.replace(' ', '_')) + '_' + str(self.current_rep.get()) + '_IR.avi')
         self.label2.config(fg='red')
         if self.clr.get() == 1:
-            file_name = self.path_to_save + "/" + self.record_name.replace(' ', '_') + '_Color_' + str(self.rep) + '_IR.avi'
+            file_name = self.path_to_save + "/" + self.record_name.replace(' ', '_') + '_Color_' + str(self.current_rep.get()) + '_IR.avi'
         else:
-            file_name = self.path_to_save + "/" + self.record_name.replace(' ', '_') + '_' + str(self.rep) + '_IR.avi'
+            file_name = self.path_to_save + "/" + self.record_name.replace(' ', '_') + '_' + str(self.current_rep.get()) + '_IR.avi'
         self.ir_out = cv2.VideoWriter(file_name, self.fourcc, self.ir_frame_rate, self.ir_res)
         time.sleep(0.1)
         for frame in self.ir_buffer:

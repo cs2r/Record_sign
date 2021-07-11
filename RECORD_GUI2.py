@@ -3,6 +3,7 @@
 from imutils.video.webcamvideostream import BaslerVideoStream
 import imutils
 from tkinter import *
+from tkinter import messagebox
 from tkinter.filedialog import askdirectory
 from awesometkinter.bidirender import render_bidi_text
 import time, json, pyglet, glob
@@ -12,8 +13,10 @@ import cv2
 import numpy
 from PIL import Image
 from PyV4L2Camera.camera import Camera
+from PyV4L2Camera.controls import CameraControl, ControlIDs
 import threading
-import subprocess, random
+import random
+
 
 
 class RecordGUI:
@@ -25,7 +28,7 @@ class RecordGUI:
         print(cv2.__version__)
         self.master = master
         master.title("RECORD SIGN DATA")
-        self.master.geometry("700x420+2240+600")
+        self.master.geometry("700x620+1800+800")
 
         self.rec_but = Button(master, text="Start REC", state=DISABLED, command=self.rec)
         self.rec_but.grid(row=5, column=0, sticky=W)
@@ -42,7 +45,7 @@ class RecordGUI:
         self.close_button = Button(master, text="Close", command=self.close)
         self.close_button.grid(row=5, column=4, sticky=E)
 
-        self.lb = Listbox(master, selectmode=SINGLE, height=20)
+        self.lb = Listbox(master, selectmode=SINGLE, height=30)
         self.lb.grid(row=1, column=0, rowspan=4, sticky=S)
         self.lb.bind('<<ListboxSelect>>', self.sign_select)
 
@@ -225,9 +228,9 @@ class RecordGUI:
             print("****************************")'''
     def amination_TH(self):
         window = pyglet.window.Window()
-        window.set_location(1300, 0)
+        window.set_location(1800, 0)
         while True:
-            time.sleep(1)
+            time.sleep(0.1)
             if self.man.get() == 0 and len(self.lb.curselection()) > 0:
                 animation = pyglet.image.load_animation(self.sign_list[self.lb.curselection()[0]])
             else:
@@ -245,6 +248,10 @@ class RecordGUI:
             def on_draw():
                 window.clear()
                 animSprite.draw()
+                if (self.record):
+                    window.set_location(1800, 1000)
+                else:
+                    window.set_location(1800, 0)
             pyglet.app.run()
 
     def close(self):
@@ -273,6 +280,21 @@ class RecordGUI:
             else:
                 self.rec_but.config(text="Start REC")
                 self.record = False
+
+                if self.clr.get() == 1:
+                    file_name = self.path_to_save + "/" + self.record_name.replace(' ', '_') + '_Color_' + str(
+                        self.current_rep.get())
+                else:
+                    file_name = self.path_to_save + "/" + self.record_name.replace(' ', '_') + '_' + str(
+                        self.current_rep.get())
+                if os.path.exists(file_name+'_IR.avi') | os.path.exists(file_name+'_RGB.avi'):
+                    MsgBox = messagebox.askquestion('OverWrite',
+                                                    'This file exist. \nAre you sure you want to OverWrite the old recording',
+                                                    icon='warning')
+                    if MsgBox == 'no':
+                        self.egnore()
+                        return
+
                 baslerSave_th = threading.Thread(target=self.saveBasler)
                 baslerSave_th.start()
                 self.basler_saved = False
@@ -293,6 +315,21 @@ class RecordGUI:
                 self.rec_but.config(text="Start REC")
                 self.record = False
                 self.record_name = self.filename.get()
+
+                if self.clr.get() == 1:
+                    file_name = self.path_to_save + "/" + self.record_name.replace(' ', '_') + '_Color_' + str(
+                        self.current_rep.get())
+                else:
+                    file_name = self.path_to_save + "/" + self.record_name.replace(' ', '_') + '_' + str(
+                        self.current_rep.get())
+                if os.path.exists(file_name+'_IR.avi') | os.path.exists(file_name+'_RGB.avi'):
+                    MsgBox = messagebox.askquestion('OverWrite',
+                                                    'This file exist. \nAre you sure you want to OverWrite the old recording',
+                                                    icon='warning')
+                    if MsgBox == 'no':
+                        self.egnore()
+                        return
+
                 baslerSave_th = threading.Thread(target=self.saveBasler)
                 baslerSave_th.start()
                 self.basler_saved = False
@@ -345,12 +382,13 @@ class RecordGUI:
         #print(result.read())
 
     def saveBasler(self):
-        self.info1.set("Saving RGB To \n" + self.path_to_save + "/" + render_bidi_text(self.record_name.replace(' ', '_')) + '_' + str(self.current_rep.get()) + '_RGB.avi')
-        self.label1.config(fg='red')
         if self.clr.get() == 1:
             file_name = self.path_to_save + "/" + self.record_name.replace(' ', '_') + '_Color_' + str(self.current_rep.get()) + '_RGB.avi'
         else:
             file_name = self.path_to_save + "/" + self.record_name.replace(' ', '_') + '_' + str(self.current_rep.get()) + '_RGB.avi'
+
+        self.info1.set("Saving RGB To \n" + self.path_to_save + "/" + render_bidi_text(self.record_name.replace(' ', '_')) + '_' + str(self.current_rep.get()) + '_RGB.avi')
+        self.label1.config(fg='red')
         self.basler_out = cv2.VideoWriter(file_name, self.fourcc, self.basler_frame_rate, self.basler_res)
         time.sleep(0.1)
 
@@ -375,12 +413,13 @@ class RecordGUI:
         self.rec_but.config(state=NORMAL)
 
     def saveIR(self):
-        self.info2.set("Saving IR to \n" + self.path_to_save + "/" + render_bidi_text(self.record_name.replace(' ', '_')) + '_' + str(self.current_rep.get()) + '_IR.avi')
-        self.label2.config(fg='red')
         if self.clr.get() == 1:
             file_name = self.path_to_save + "/" + self.record_name.replace(' ', '_') + '_Color_' + str(self.current_rep.get()) + '_IR.avi'
         else:
             file_name = self.path_to_save + "/" + self.record_name.replace(' ', '_') + '_' + str(self.current_rep.get()) + '_IR.avi'
+
+        self.info2.set("Saving IR to \n" + self.path_to_save + "/" + render_bidi_text(self.record_name.replace(' ', '_')) + '_' + str(self.current_rep.get()) + '_IR.avi')
+        self.label2.config(fg='red')
         self.ir_out = cv2.VideoWriter(file_name, self.fourcc, self.ir_frame_rate, self.ir_res)
         time.sleep(0.1)
         for frame in self.ir_buffer:
@@ -413,6 +452,7 @@ class RecordGUI:
 
     def recordingIR(self):
         IRcamera = Camera('/dev/video0', self.ir_res[0], self.ir_res[1])
+
         while(self.stream):
             start = time.time()
             Rstart=time.time()
@@ -436,6 +476,8 @@ class RecordGUI:
             haar_file = 'haarcascade_frontalface_default.xml'
             face_cascade = cv2.CascadeClassifier(haar_file)
         time.sleep(4)
+        cv2.namedWindow('Display')  # Create a named window
+        cv2.moveWindow('Display', 400, 30)
         font = cv2.FONT_HERSHEY_SIMPLEX
         while(self.stream):
             basler_frame = self.basler_frame.copy()
@@ -460,7 +502,7 @@ class RecordGUI:
                 cv2.putText(ir_frame, self.ir_fps, (5,15), font, 0.5, (0, 0, 255), 1, cv2.LINE_AA)
                 frame = numpy.concatenate((ir_frame, basler_frame), axis=1)
                 cv2.imshow('Display',frame)
-                cv2.waitKey(100)
+                cv2.waitKey(30)
         cv2.destroyAllWindows()
         self.master.destroy()
 

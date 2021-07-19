@@ -135,7 +135,7 @@ class RecordGUI:
         self.sign_rect = [0, 0, 1, 1]
         self.sign_name = ""
 
-        self.basler_saved = False
+        self.basler_saved = True
         self.ir_saved = False
         self.detect_face = False
         self.save_dir = "/home/g108/Desktop/Recording/"   #"/media/g108/Recording/"  #
@@ -222,8 +222,8 @@ class RecordGUI:
             self.sign_name = self.list_of_signs[self.lb.curselection()[0]]   #  self.lb.get(self.lb.curselection()[0])  #
             self.label3.config(fg='green')
             self.info3.set("Sign Name: << " + render_bidi_text(self.sign_name) + " >>")
-            '''print(self.lb.curselection())
-            print(self.list_of_signs[self.lb.curselection()[0]])
+            print(self.lb.curselection()[0]+1)
+            '''print(self.list_of_signs[self.lb.curselection()[0]])
             print(self.lb.get(self.lb.curselection()[0]))
             print("****************************")'''
     def amination_TH(self):
@@ -248,10 +248,10 @@ class RecordGUI:
             def on_draw():
                 window.clear()
                 animSprite.draw()
-                if (self.record):
+                '''if (self.record):
                     window.set_location(1800, 1000)
                 else:
-                    window.set_location(1800, 0)
+                    window.set_location(1800, 0)'''
             pyglet.app.run()
 
     def close(self):
@@ -406,6 +406,7 @@ class RecordGUI:
 
         for frame in self.basler_buffer:
             self.basler_out.write(frame)
+        self.basler_saved = True
         self.basler_out.release()
         self.basler_buffer = []
         self.info1.set("RGB SAVED In \n" + render_bidi_text(file_name))
@@ -500,6 +501,8 @@ class RecordGUI:
                 ir_frame = cv2.cvtColor(numpy.asarray(pil_image), cv2.COLOR_RGB2BGR)
                 ir_frame = imutils.resize(ir_frame, height=240)
                 cv2.putText(ir_frame, self.ir_fps, (5,15), font, 0.5, (0, 0, 255), 1, cv2.LINE_AA)
+                if self.basler_saved == False:
+                    cv2.putText(ir_frame, "SAVING THE VIDEO...", (5, 200), font, 0.5, (0, 0, 255), 1, cv2.LINE_AA)
                 frame = numpy.concatenate((ir_frame, basler_frame), axis=1)
                 cv2.imshow('Display',frame)
                 cv2.waitKey(30)
